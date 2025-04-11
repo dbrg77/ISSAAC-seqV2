@@ -1,0 +1,200 @@
+configfile: 'config.json'
+
+rule all:
+    input:
+        'RNA/fastq/CB_UMI.fq.gz',
+        'star_outs/star.done',
+        'chromap_outs/summary.csv',
+        'chromap_outs/fragments.tsv.gz',
+        'chromap_outs/fragments.tsv.gz.tbi',
+        'chromap_outs/qc_num_frags_in_peaks.csv',
+        'chromap_outs/qc_num_chrM.csv',
+        'chromap_outs/tagAlign_no_chrM.bed.gz',
+        'macs2_pk/aggregate_peaks.narrowPeak',
+        'macs2_pk/aggregate_treat_pileup.bdg',
+        'macs2_pk/aggregate_treat_pileup.bw',
+        'macs2_pk/macs2.done',
+        'chromap_outs/qc_info.csv',
+        'chromap_outs/sequencing_depth.pdf',
+        'chromap_outs/unique_nuclear_fragments.pdf',
+        'chromap_outs/mapping_rate.pdf'
+
+rule prepareRNACBUMI:
+    input:
+        cb=config['rna_cb_fq'],
+        umi=config['rna_umi_fq']
+    output:
+        'RNA/fastq/CB_UMI.fq.gz'
+    shell:
+        ''' paste <(zcat {input.cb}) <(zcat {input.umi}) | \
+            awk -F "\t" '{{ if(NR%4==1||NR%4==3) {{print $1}} else {{print $1 substr($2,1,10)}} }}' | \
+            gzip > {output}
+        '''
+
+rule alignRNA:
+    input:
+        cdna=config['rna_cdna_fq'],
+        cbumi='RNA/fastq/CB_UMI.fq.gz'
+    output:
+        touch('star_outs/star.done')
+    log:
+        stdout='logs/star.stdout',
+        stderr='logs/star.stderr'
+    params:
+        pg=config['star_bin'],
+        idx=config['star_idx'],
+        wl=config['whitelist'],
+        ft=config['star_ft'],
+        trim3=config['star_trim3'],
+        mmNmax=config['mmNmax'],
+        configbc=config['star_configbc'],
+        cbumipos=config['star_cbumipos'],
+        strand=config['star_strand'],
+        samattr=config['star_samattr']
+    threads: 40
+    shell:
+        ''' {params.pg} --runThreadN {threads} \
+            --genomeDir {params.idx} \
+            --readFilesCommand zcat \
+            --outFileNamePrefix star_outs/ \
+            --outFilterMultimapNmax {params.mmNmax} \
+            --readFilesIn {input.cdna} {input.cbumi} \
+            --clip3pNbases {params.trim3} \
+            --soloFeatures {params.ft} \
+            --soloType {params.configbc} {params.cbumipos} \
+            --soloCBwhitelist {params.wl} \
+            --soloCellReadStats Standard \
+            --soloCellFilter EmptyDrops_CR \
+            --soloStrand {params.strand} \
+            --outSAMattributes {params.samattr} \
+            --outSAMtype BAM SortedByCoordinate \
+            1> {log.stdout} 2> {log.stderr} && \
+            gzip star_outs/Solo.out/{params.ft}/raw/* \
+                 star_outs/Solo.out/{params.ft}/filtered/*
+        '''
+
+rule alignATAC:
+    input:
+        r1=config['atac_r1_fq'],
+        r2=config['atac_r2_fq'],
+        cb=config['atac_cb_fq']
+    output:
+        'chromap_outs/fragments.tsv.gz',
+        qc='chromap_outs/summary.csv'
+    log:
+        stdout='logs/chromap.stdout',
+        stderr='logs/chromap.stderr'
+    params:
+        pg=config['chromap_bin'],
+        idx=config['chromap_idx'],
+        fa=config['chromap_fa'],
+        wl=config['whitelist']
+    threads: 40
+    shell:
+        ''' {params.pg} -t {threads} -x {params.idx} -r {params.fa} \
+            --preset atac --summary {output.qc} \
+            -1 {input.r1} -2 {input.r2} -b {input.cb} \
+            --barcode-whitelist {params.wl} \
+            -o chromap_outs/fragments.tsv \
+            1> {log.stdout} 2> {log.stderr} \
+            && bgzip chromap_outs/fragments.tsv
+        '''
+
+rule indexFrag:
+    input:
+        'chromap_outs/fragments.tsv.gz'
+    output:
+        'chromap_outs/fragments.tsv.gz.tbi'
+    shell:
+        'tabix -p bed {input}'
+
+rule fragsInPeaks:
+    input:
+        frag='chromap_outs/fragments.tsv.gz',
+        peak='macs2_pk/aggregate_peaks.narrowPeak'
+    output:
+        'chromap_outs/qc_num_frags_in_peaks.csv'
+    shell:
+        ''' intersectBed -a {input.frag} -b {input.peak} -u | \
+            cut -f 4 | sort | uniq -c | \
+            awk 'BEGIN{{OFS=","}}{{print $2,$1}}' \
+            > {output}
+        '''
+
+rule chrMCheck:
+    input:
+        'chromap_outs/fragments.tsv.gz'
+    output:
+        'chromap_outs/qc_num_chrM.csv'
+    shell:
+        ''' zcat {input} | grep chrM | \
+            cut -f 4 | sort | uniq -c | \
+            awk 'BEGIN{{OFS=","}}{{print $2,$1}}' \
+            > {output}
+        '''
+
+rule fragToTagAlign:
+    input:
+        frag='chromap_outs/fragments.tsv.gz',
+        bl=config['blacklist'],
+        csize=config['chrom_size']
+    output:
+        'chromap_outs/tagAlign_no_chrM.bed.gz'
+    shell:
+        ''' zcat {input.frag} | \
+            awk 'BEGIN{{OFS="\t"}}{{ print $1, $2, $2+50, $4, ".", "+"; print $1, $3-50, $3, $4, ".", "-" }}' | \
+            bedClip stdin {input.csize} stdout | \
+            intersectBed -a - -b {input.bl} -v | \
+            gzip > {output}
+        '''
+
+rule peakCalling:
+    input:
+        'chromap_outs/tagAlign_no_chrM.bed.gz'
+    output:
+        'macs2_pk/aggregate_treat_pileup.bdg',
+        'macs2_pk/aggregate_peaks.narrowPeak',
+        touch('macs2_pk/macs2.done')
+    params:
+        gs=config['gsize'],
+        shift=config['macs2_shift']
+    log:
+        stdout='logs/macs2.stdout',
+        stderr='logs/macs2.stderr'
+    shell:
+        ''' macs2 callpeak -t {input} -f BED -g {params.gs} \
+            {params.shift} -B --SPMR --keep-dup all -q 0.01 \
+            --outdir macs2_pk -n aggregate \
+            1> {log.stdout} 2> {log.stderr}
+        '''
+
+rule bdgToBw:
+    input:
+        bdg='macs2_pk/aggregate_treat_pileup.bdg',
+        cs=config['chrom_size']
+    output:
+        'macs2_pk/aggregate_treat_pileup.bw'
+    shell:
+        ''' bdg2bw {input.bdg} {input.cs}
+        '''
+
+rule collectQC:
+    input:
+        config['whitelist_wid'],
+        'chromap_outs/summary.csv',
+        'chromap_outs/qc_num_frags_in_peaks.csv',
+        'chromap_outs/qc_num_chrM.csv'
+    output:
+        'chromap_outs/qc_info.csv'
+    script:
+        'scripts/collect_qc.py'
+
+rule drawQC:
+    input:
+        'chromap_outs/qc_info.csv'
+    output:
+        'chromap_outs/sequencing_depth.pdf',
+        'chromap_outs/unique_nuclear_fragments.pdf',
+        'chromap_outs/mapping_rate.pdf'
+    script:
+        'scripts/draw_qc.py'

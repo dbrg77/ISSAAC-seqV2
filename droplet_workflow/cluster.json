@@ -1,0 +1,26 @@
+{
+    "__default__" :
+    {
+        "nCPUs" : "2",
+        "memory" : 12000,
+        "resources" : "\"select[mem>12000] rusage[mem=12000] span[hosts=1]\"",
+        "output" : "bsub_logs/{rule}.bsub",
+        "queues" : "ser",
+    },
+    "alignATAC" :
+    {
+        "nCPUs" : "40",
+        "memory" : 24000,
+        "resources" : "\"select[mem>24000] rusage[mem=24000] span[hosts=1]\"",
+        "output" : "bsub_logs/{rule}.bsub",
+        "queues" : "short",
+    },
+    "alignRNA" :
+    {
+        "nCPUs" : "40",
+        "memory" : 64000,
+        "resources" : "\"select[mem>64000] rusage[mem=64000] span[hosts=1]\"",
+        "output" : "bsub_logs/{rule}.bsub",
+        "queues" : "short",
+    }
+}
