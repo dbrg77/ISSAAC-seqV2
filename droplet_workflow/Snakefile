@@ -2,7 +2,7 @@ configfile: 'config.json'
 
 rule all:
     input:
-        'RNA/fastq/CB_UMI.fq.gz',
+        'fastq/RNA_CB_UMI.fq.gz',
         'star_outs/star.done',
         'chromap_outs/summary.csv',
         'chromap_outs/fragments.tsv.gz',
@@ -29,7 +29,7 @@ rule prepareRNACBUMI:
         cb=config['rna_cb_fq'],
         umi=config['rna_umi_fq']
     output:
-        'RNA/fastq/CB_UMI.fq.gz'
+        'fastq/RNA_CB_UMI.fq.gz'
     shell:
         ''' paste <(zcat {input.cb}) <(zcat {input.umi}) | \
             awk -F "\t" '{{ if(NR%4==1||NR%4==3) {{print $1}} else {{print $1 substr($2,1,10)}} }}' | \
@@ -39,7 +39,7 @@ rule prepareRNACBUMI:
 rule alignRNA:
     input:
         cdna=config['rna_cdna_fq'],
-        cbumi='RNA/fastq/CB_UMI.fq.gz'
+        cbumi='fastq/RNA_CB_UMI.fq.gz'
     output:
         touch('star_outs/star.done')
     log:
@@ -84,11 +84,10 @@ rule alignATAC:
         r2=config['atac_r2_fq'],
         cb=config['atac_cb_fq']
     output:
-        'chromap_outs/fragments.tsv.gz',
+        frag='chromap_outs/fragments.tsv.gz',
         qc='chromap_outs/summary.csv'
     log:
-        stdout='logs/chromap.stdout',
-        stderr='logs/chromap.stderr'
+        'logs/chromap.stderr'
     params:
         pg=config['chromap_bin'],
         idx=config['chromap_idx'],
@@ -100,9 +99,8 @@ rule alignATAC:
             --preset atac --summary {output.qc} \
             -1 {input.r1} -2 {input.r2} -b {input.cb} \
             --barcode-whitelist {params.wl} \
-            -o chromap_outs/fragments.tsv \
-            1> {log.stdout} 2> {log.stderr} \
-            && bgzip chromap_outs/fragments.tsv
+            -o /dev/stdout | bgzip > {output.frag} \
+            2> {log}
         '''
 
 rule indexFrag:
@@ -112,19 +110,6 @@ rule indexFrag:
         'chromap_outs/fragments.tsv.gz.tbi'
     shell:
         'tabix -p bed {input}'
-
-rule fragsInPeaks:
-    input:
-        frag='chromap_outs/fragments.tsv.gz',
-        peak='macs2_pk/aggregate_peaks.narrowPeak'
-    output:
-        'chromap_outs/qc_num_frags_in_peaks.csv'
-    shell:
-        ''' intersectBed -a {input.frag} -b {input.peak} -u | \
-            cut -f 4 | sort | uniq -c | \
-            awk 'BEGIN{{OFS=","}}{{print $2,$1}}' \
-            > {output}
-        '''
 
 rule chrMCheck:
     input:
@@ -183,6 +168,19 @@ rule formatPeak:
     shell:
         ''' cut -f 1-3 {input} | sort -k1,1 -k2,2n | \
             awk 'BEGIN{{OFS="\t"}}{{print $1, $2, $3, $1 "-" $2 "-" $3}}' > {output}
+        '''
+
+rule fragsInPeaks:
+    input:
+        frag='chromap_outs/fragments.tsv.gz',
+        peak='macs2_pk/aggregate_peaks.narrowPeak'
+    output:
+        'chromap_outs/qc_num_frags_in_peaks.csv'
+    shell:
+        ''' intersectBed -a {input.frag} -b {input.peak} -u | \
+            cut -f 4 | sort | uniq -c | \
+            awk 'BEGIN{{OFS=","}}{{print $2,$1}}' \
+            > {output}
         '''
 
 rule bdgToBw:
@@ -254,6 +252,5 @@ rule cellCallingATAC:
     shell:
         ''' {input.pg} --runMode soloCellFiltering \
             chromap_outs/raw/ chromap_outs/filtered/ \
-            --soloCellFilter EmptyDrops_CR \
-            && rm -rf '_STARtmp'
+            --soloCellFilter EmptyDrops_CR
         '''

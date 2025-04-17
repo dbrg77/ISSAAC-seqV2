@@ -4,15 +4,21 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 
-df = pd.read_csv(snakemake.input[0], index_col='wid')
+df1 = pd.read_csv(snakemake.input[0])
+df2 = pd.read_csv(snakemake.input[1], sep='\t',
+    usecols=['CB', 'cbMatch', 'genomeU', 'genomeM']
+)
+df = df1.merge(df2, left_on='barcode', right_on='CB', how='left', validate='1:1')
+df.set_index('wid', inplace=True)
 order = [f'{row}{col:02}' for row in 'ABCDEFGHIJKLMNOP' for col in range(1,25)]
 df = df.loc[order,:]
+df['mr'] = (df['genomeU'] + df['genomeM'])/df['cbMatch']
 
 xs = list(range(1,25)) * 16
 ys = [i for i in range(16,0,-1) for _ in range(24)]
 
-for i,metric in enumerate(['total', 'uniq_frags_nuc', 'mapping_rate']):
-    if metric == 'mapping_rate':
+for i,metric in enumerate(['total', 'uniq_frags_nuc', 'mapping_rate', 'mr', 'cbMatch']):
+    if metric == 'mapping_rate' or metric == 'mr':
         colour = df[metric].values
     else:
         colour = np.log10(df[metric].values + 1)

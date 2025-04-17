@@ -2,8 +2,9 @@ configfile: 'config.json'
 
 rule all:
     input:
-        'RNA/fastq/CB_UMI.fq.gz',
+        'fastq/RNA_CB_UMI.fq.gz',
         'star_outs/star.done',
+        'star_outs/Solo.out/GeneFull/CellReads.stats',
         'chromap_outs/summary.csv',
         'chromap_outs/fragments.tsv.gz',
         'chromap_outs/fragments.tsv.gz.tbi',
@@ -11,20 +12,27 @@ rule all:
         'chromap_outs/qc_num_chrM.csv',
         'chromap_outs/tagAlign_no_chrM.bed.gz',
         'macs2_pk/aggregate_peaks.narrowPeak',
+        'macs2_pk/aggregate_peaks_formatted.bed',
         'macs2_pk/aggregate_treat_pileup.bdg',
         'macs2_pk/aggregate_treat_pileup.bw',
         'macs2_pk/macs2.done',
         'chromap_outs/qc_info.csv',
-        'chromap_outs/sequencing_depth.pdf',
-        'chromap_outs/unique_nuclear_fragments.pdf',
-        'chromap_outs/mapping_rate.pdf'
+        'chromap_outs/peak_read_ov.tsv.gz',
+        'chromap_outs/raw/features.tsv',
+        'chromap_outs/raw/barcodes.tsv',
+        'chromap_outs/raw/matrix.mtx',
+        'plate_plots/atac_sequencing_depth.pdf',
+        'plate_plots/atac_unique_nuclear_fragments.pdf',
+        'plate_plots/atac_mapping_rate.pdf',
+        'plate_plots/rna_mapping_rate.pdf',
+        'plate_plots/rna_sequencing_depth.pdf'
 
 rule prepareRNACBUMI:
     input:
         cb=config['rna_cb_fq'],
         umi=config['rna_umi_fq']
     output:
-        'RNA/fastq/CB_UMI.fq.gz'
+        'fastq/RNA_CB_UMI.fq.gz'
     shell:
         ''' paste <(zcat {input.cb}) <(zcat {input.umi}) | \
             awk -F "\t" '{{ if(NR%4==1||NR%4==3) {{print $1}} else {{print $1 substr($2,1,10)}} }}' | \
@@ -34,8 +42,9 @@ rule prepareRNACBUMI:
 rule alignRNA:
     input:
         cdna=config['rna_cdna_fq'],
-        cbumi='RNA/fastq/CB_UMI.fq.gz'
+        cbumi='fastq/RNA_CB_UMI.fq.gz'
     output:
+        'star_outs/Solo.out/GeneFull/CellReads.stats',
         touch('star_outs/star.done')
     log:
         stdout='logs/star.stdout',
@@ -79,11 +88,10 @@ rule alignATAC:
         r2=config['atac_r2_fq'],
         cb=config['atac_cb_fq']
     output:
-        'chromap_outs/fragments.tsv.gz',
+        frag='chromap_outs/fragments.tsv.gz',
         qc='chromap_outs/summary.csv'
     log:
-        stdout='logs/chromap.stdout',
-        stderr='logs/chromap.stderr'
+        'logs/chromap.stderr'
     params:
         pg=config['chromap_bin'],
         idx=config['chromap_idx'],
@@ -95,9 +103,8 @@ rule alignATAC:
             --preset atac --summary {output.qc} \
             -1 {input.r1} -2 {input.r2} -b {input.cb} \
             --barcode-whitelist {params.wl} \
-            -o chromap_outs/fragments.tsv \
-            1> {log.stdout} 2> {log.stderr} \
-            && bgzip chromap_outs/fragments.tsv
+            -o /dev/stdout | bgzip > {output.frag} \
+            2> {log}
         '''
 
 rule indexFrag:
@@ -107,19 +114,6 @@ rule indexFrag:
         'chromap_outs/fragments.tsv.gz.tbi'
     shell:
         'tabix -p bed {input}'
-
-rule fragsInPeaks:
-    input:
-        frag='chromap_outs/fragments.tsv.gz',
-        peak='macs2_pk/aggregate_peaks.narrowPeak'
-    output:
-        'chromap_outs/qc_num_frags_in_peaks.csv'
-    shell:
-        ''' intersectBed -a {input.frag} -b {input.peak} -u | \
-            cut -f 4 | sort | uniq -c | \
-            awk 'BEGIN{{OFS=","}}{{print $2,$1}}' \
-            > {output}
-        '''
 
 rule chrMCheck:
     input:
@@ -145,6 +139,7 @@ rule fragToTagAlign:
             awk 'BEGIN{{OFS="\t"}}{{ print $1, $2, $2+50, $4, ".", "+"; print $1, $3-50, $3, $4, ".", "-" }}' | \
             bedClip stdin {input.csize} stdout | \
             intersectBed -a - -b {input.bl} -v | \
+            sort -k1,1 -k2,2n | \
             gzip > {output}
         '''
 
@@ -168,6 +163,29 @@ rule peakCalling:
             1> {log.stdout} 2> {log.stderr}
         '''
 
+rule formatPeak:
+    input:
+        'macs2_pk/aggregate_peaks.narrowPeak'
+    output:
+        'macs2_pk/aggregate_peaks_formatted.bed'
+    shell:
+        ''' cut -f 1-3 {input} | sort -k1,1 -k2,2n | \
+            awk 'BEGIN{{OFS="\t"}}{{print $1, $2, $3, $1 "-" $2 "-" $3}}' > {output}
+        '''
+
+rule fragsInPeaks:
+    input:
+        frag='chromap_outs/fragments.tsv.gz',
+        peak='macs2_pk/aggregate_peaks.narrowPeak'
+    output:
+        'chromap_outs/qc_num_frags_in_peaks.csv'
+    shell:
+        ''' intersectBed -a {input.frag} -b {input.peak} -u | \
+            cut -f 4 | sort | uniq -c | \
+            awk 'BEGIN{{OFS=","}}{{print $2,$1}}' \
+            > {output}
+        '''
+
 rule bdgToBw:
     input:
         bdg='macs2_pk/aggregate_treat_pileup.bdg',
@@ -178,23 +196,63 @@ rule bdgToBw:
         ''' bdg2bw {input.bdg} {input.cs}
         '''
 
-rule collectQC:
+rule collectAtacQC:
     input:
         config['whitelist_wid'],
         'chromap_outs/summary.csv',
         'chromap_outs/qc_num_frags_in_peaks.csv',
-        'chromap_outs/qc_num_chrM.csv'
+        'chromap_outs/qc_num_chrM.csv',
+        'star_outs/Solo.out/GeneFull/CellReads.stats'
     output:
         'chromap_outs/qc_info.csv'
     script:
-        'scripts/collect_qc.py'
+        'scripts/collect_atac_qc.py'
+
+rule peakReadOV:
+    input:
+        peaks='macs2_pk/aggregate_peaks_formatted.bed',
+        reads='chromap_outs/tagAlign_no_chrM.bed.gz',
+        cs=config['chrom_size']
+    output:
+        'chromap_outs/peak_read_ov.tsv.gz'
+    shell:
+        ''' intersectBed -a {input.peaks} -b {input.reads} \
+            -wo -sorted -g {input.cs} | sort -k4,4 | \
+            groupBy -g 4 -c 8 -o freqdesc | \
+            gzip > {output}
+        '''
+
+rule prepareMTX1:
+    input:
+        pkov='chromap_outs/peak_read_ov.tsv.gz',
+        frag='chromap_outs/fragments.tsv.gz'
+    output:
+        ft='chromap_outs/raw/features.tsv',
+        bc='chromap_outs/raw/barcodes.tsv'
+    shell:
+        ''' zcat {input.pkov} | cut -f 1 > {output.ft}
+            zcat {input.frag} | cut -f 4 | sort -u > {output.bc}
+        '''
+
+rule prepareMTX2:
+    input:
+        'chromap_outs/raw/features.tsv',
+        'chromap_outs/raw/barcodes.tsv',
+        'chromap_outs/peak_read_ov.tsv.gz'
+    output:
+        'chromap_outs/raw/matrix.mtx'
+    script:
+        'scripts/generate_csc_mtx.py'
 
 rule drawQC:
     input:
-        'chromap_outs/qc_info.csv'
+        'chromap_outs/qc_info.csv',
+        'star_outs/Solo.out/GeneFull/CellReads.stats'
     output:
-        'chromap_outs/sequencing_depth.pdf',
-        'chromap_outs/unique_nuclear_fragments.pdf',
-        'chromap_outs/mapping_rate.pdf'
+        'plate_plots/atac_sequencing_depth.pdf',
+        'plate_plots/atac_unique_nuclear_fragments.pdf',
+        'plate_plots/atac_mapping_rate.pdf',
+        'plate_plots/rna_mapping_rate.pdf',
+        'plate_plots/rna_sequencing_depth.pdf'
     script:
         'scripts/draw_qc.py'
