@@ -193,7 +193,7 @@ rule bdgToBw:
         ''' bdg2bw {input.bdg} {input.cs}
         '''
 
-rule collectQC:
+rule collectAtacQC:
     input:
         'chromap_outs/summary.csv',
         'chromap_outs/qc_num_frags_in_peaks.csv',
@@ -201,7 +201,7 @@ rule collectQC:
     output:
         'chromap_outs/qc_info.csv'
     script:
-        'scripts/collect_qc.py'
+        'scripts/collect_atac_qc.py'
 
 rule peakReadOV:
     input:
