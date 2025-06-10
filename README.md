@@ -87,38 +87,20 @@ I have provided the files for human (`hg38`) and mouse (`mouse`) under the `misc
 
 ### Step 3: Preparation of your own data
 
+For your own data, you need the `fastq` files.
+
 Put the path to the corresponding FASTQ files in `config.json`. To run the pipeline using all available cores, simply run:
 
 ```
 snakemake --cores
 ```
 
-## Softwares/Packages prerequisite:
+## Citations
 
-1. __General programs__
-  - Python3
-  - R v4
-2. __Python packages__
-  - numpy (v1.19.5)
-  - scipy (v1.5.3)
-  - pandas (v1.1.5)
-  - seaborn (v0.11.0.rc0)
-  - scanpy (v1.9.0)
-  - scikit-learn (v0.22.1)
-3. __R packages__
-  - Matrix (v1.3-3)
-  - Signac (v1.6.0)
-  - Seurat (v4.1.0)
-  - monocle (v2.20.0)
-  - GenomeInfoDb (v1.30.1)
-  - EnsDb.Mmusculus.v79 (v2.99.0)
-  - EnsDb.Hsapiens.v86 (v2.99.0)
-  - ggplot2 (v3.35)
-  - patchwork (v1.1.1)
-  - dplyr (v1.0.8)
-  - stringr (v1.4.0.9000)
-  - mgsub (v1.7.3)
-  - stringi (v1.7.6)
+If you use the preprocessing pipeline described here, please cite the following two papers together:
+
+1. Xu W, Yang W, Zhang Y, Chen Y, Hong N, Zhang Q, Wang X, Hu Y, Song K, Jin W, Chen X (2022) **ISSAAC-seq enables sensitive and flexible multimodal profiling of chromatin accessibility and gene expression in single cells**. *Nat Methods* 19:1243–1249. https://doi.org/10.1038/s41592-022-01601-4
+2. **Manuscript under review**, to be updated soon.
 
 ## Contact
 
