@@ -11,7 +11,7 @@
     "chromap_idx" : "/data/bio-chenx/reference/homo_sapiens/refdata-cellranger-arc-GRCh38-2020-A-2.0.0/chromap/genome.index",
     "chromap_fa" : "/data/bio-chenx/reference/homo_sapiens/refdata-cellranger-arc-GRCh38-2020-A-2.0.0/fasta/genome.fa",
     "blacklist" : "/data/bio-chenx/reference/homo_sapiens/ucsc/hg38/hg38-blacklist.bed",
-    "chrom_size" : "/data/bio-chenx/reference/homo_sapiens/refdata-cellranger-arc-GRCh38-2020-A-2.0.0/chrom.sizes.sorted.tsv",
+    "chrom_size" : "/data/bio-chenx/reference/homo_sapiens/refdata-cellranger-arc-GRCh38-2020-A-2.0.0/hg38.chrom.sizes.sorted.tsv",
     "star_bin" : "/work/bio-chenx/tools/STAR_2.7.11b/Linux_x86_64_static/STAR",
     "star_idx" : "/data/bio-chenx/reference/homo_sapiens/refdata-cellranger-arc-GRCh38-2020-A-2.0.0/star_2.7.11b",
     "mmNmax" : "20",

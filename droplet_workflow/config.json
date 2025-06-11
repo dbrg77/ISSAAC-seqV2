@@ -10,7 +10,7 @@
     "chromap_idx" : "/data/bio-chenx/reference/mus_musculus/refdata-cellranger-arc-mm10-2020-A-2.0.0/chromap/genome.index",
     "chromap_fa" : "/data/bio-chenx/reference/mus_musculus/refdata-cellranger-arc-mm10-2020-A-2.0.0/fasta/genome.fa",
     "blacklist" : "/data/bio-chenx/reference/mus_musculus/ucsc/mm10/mm10.blacklist.bed",
-    "chrom_size" : "/data/bio-chenx/reference/mus_musculus/refdata-cellranger-arc-mm10-2020-A-2.0.0/chrom.sizes",
+    "chrom_size" : "/data/bio-chenx/reference/mus_musculus/refdata-cellranger-arc-mm10-2020-A-2.0.0/mm10.chrom.sizes.sorted.tsv",
     "star_bin" : "/work/bio-chenx/tools/STAR_2.7.11b/Linux_x86_64_static/STAR",
     "star_idx" : "/data/bio-chenx/reference/mus_musculus/refdata-cellranger-arc-mm10-2020-A-2.0.0/star_2.7.11b",
     "mmNmax" : "20",
