@@ -3,7 +3,7 @@ ISSAAC-seq is a single-cell multiomic method for simultaneous profiling of chrom
 
 ## Raw Sequencing Data
 
-The 10x Genomics workflow generates data in the same format as the original publication, and you can find the raw data (fastq files) from ArrayExpress under the accession number [E-MTAB-11264](https://www.ebi.ac.uk/arrayexpress/experiments/E-MTAB-11264/). For the plate-based workflow, we now put the well barcode to the `i5` position so that it has the same library format as the 10x Genomics workflow, and the raw data generated with PBMCs from a healthy individual can be found under the accession number [E-MTAB-15131](https://www.ebi.ac.uk/biostudies/ArrayExpress/studies/E-MTAB-15131). The Bio-Rad workflow has different library format, and the raw data can be found under the same accession number [E-MTAB-15131](https://www.ebi.ac.uk/biostudies/ArrayExpress/studies/E-MTAB-15131).
+The 10x Genomics workflow generates data in the same format as the original publication, and you can find the raw data (fastq files) from ArrayExpress under the accession number [E-MTAB-11264](https://www.ebi.ac.uk/arrayexpress/experiments/E-MTAB-11264/). For the plate-based workflow, we now put the well barcode to the `i5` position so that it has the same library format as the 10x Genomics workflow, and the raw data generated with PBMCs from a healthy individual can be found under the accession number [E-MTAB-15131](https://www.ebi.ac.uk/biostudies/ArrayExpress/studies/E-MTAB-15131). The Bio-Rad workflow has a different library format, and the raw data can be found under the same accession number [E-MTAB-15131](https://www.ebi.ac.uk/biostudies/ArrayExpress/studies/E-MTAB-15131).
 
 ## Analysing your own data
 
