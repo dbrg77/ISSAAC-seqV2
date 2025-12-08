@@ -14,7 +14,7 @@ The pipeline chains a number of commonly used programmes together, which means w
 The following programmes and packages are needed to run the full pipeline. Make sure they are executable and in our `$PATH` so that they can be invoked directly without having to specify the absolute path.
 
 - [cutadapt](https://cutadapt.readthedocs.io) (v4.5)
-- [chromap](https://github.com/haowenz/chromap) (0.2.1-r369)
+- [chromap](https://github.com/haowenz/chromap) (0.2.7-r494 or later)
 - [MACS2](https://pypi.org/project/MACS2/) (v2.2.7.1)
 - [STARsolo](https://github.com/alexdobin/STAR) (v2.7.11b)
 - [samtools](https://www.htslib.org) (v1.9)
