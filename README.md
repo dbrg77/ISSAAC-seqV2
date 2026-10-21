@@ -184,8 +184,8 @@ We can also submit the jobs by `bsub` if we use IBM LSF. This can be done by sim
 
 If you use the preprocessing pipeline described here, please cite the following two papers together:
 
-1. Xu W, Yang W, Zhang Y, Chen Y, Hong N, Zhang Q, Wang X, Hu Y, Song K, Jin W, Chen X (2022) **ISSAAC-seq enables sensitive and flexible multimodal profiling of chromatin accessibility and gene expression in single cells**. *Nat Methods* 19:1243–1249. https://doi.org/10.1038/s41592-022-01601-4
-2. **Manuscript under review**, to be updated soon.
+1. Xu W, Yang W, Zhang Y, Chen Y, Hong N, Zhang Q, Wang X, Hu Y, Song K, Jin W, Chen X (2022) **ISSAAC-seq enables sensitive and flexible multimodal profiling of chromatin accessibility and gene expression in single cells.** *Nat Methods* 19:1243–1249. https://doi.org/10.1038/s41592-022-01601-4
+2. Xu W, Hu Y, Zhang Y, Schnepp PM, Lo LK, Zhang Q, Cheng SM, Xi Chen (2026) **Single-nucleus chromatin accessibility and gene expression co-profiling by ISSAAC-seq.** *Nat Protoc* 21:3227-3259. https://doi.org/10.1038/s41596-025-01304-y
 
 ## Contact
 
